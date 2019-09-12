@@ -21,13 +21,13 @@ namespace Midi_Analyzer.Logic
         private ExcelPackage analysisPackage;
         private ExcelPackage excerptPackage;
 
-        private string[] sourceFiles;
+        private List<string> sourceFiles;
         private string destinationFolder;
         private string excerptCSV;
         private string modelMidi;
         private string imagePath;
 
-        public Analyzer(string[] sourceFiles, string destinationFolder, string excerptCSV, string modelMidi, string imagePath)
+        public Analyzer(List<string> sourceFiles, string destinationFolder, string excerptCSV, string modelMidi, string imagePath)
         {
             this.sourceFiles = sourceFiles;
             this.destinationFolder = destinationFolder;
@@ -50,14 +50,14 @@ namespace Midi_Analyzer.Logic
             stopWatch.Start();
 
             //Initialize an array to contain the paths to the xls files.
-            string[] xlsPaths = new string[sourceFiles.Length];
+            string[] xlsPaths = new string[sourceFiles.Count];
             string file = "";
-            string[] sourceCSVs = new string[sourceFiles.Length];
+            string[] sourceCSVs = new string[sourceFiles.Count];
             string[] fileSplit = null;
             string sFileName = "";
 
             //Generate the source file names.
-            for (int i = 0; i < sourceFiles.Length; i++)
+            for (int i = 0; i < sourceFiles.Count; i++)
             {
                 file = sourceFiles[i];
                 fileSplit = file.Split('\\');

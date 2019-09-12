@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Midi_Analyzer.Logic
@@ -14,7 +15,7 @@ namespace Midi_Analyzer.Logic
         /// <param name="dest">The destination path to save the new files to.</param>
         /// <param name="openDest">Specifies if the destination path should be opened in windows explorer. Default to on.</param>
         /// <returns>Boolean value that represents succesful conversion.</returns>
-        public bool RunCSVBatchFile(string[] sourceFiles, string dest, bool openDest=true)
+        public bool RunCSVBatchFile(List<string> sourceFiles, string dest, bool openDest=true)
         {
             try
             {
@@ -64,7 +65,7 @@ namespace Midi_Analyzer.Logic
         /// <param name="dest">The destination path to save the new files to.</param>
         /// <param name="openDest">Specifies if the destination path should be opened in windows explorer. Default to on.</param>
         /// <returns>Boolean value that represents succesful conversion.</returns>
-        public bool RunMIDIBatchFile(string[] sourceFiles, string dest, bool openDest=true)
+        public bool RunMIDIBatchFile(List<string> sourceFiles, string dest, bool openDest=true)
         {
             try
             {

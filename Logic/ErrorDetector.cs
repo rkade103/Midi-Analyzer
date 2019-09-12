@@ -7,7 +7,6 @@ namespace Midi_Analyzer.Logic
 {
     class ErrorDetector
     {
-
         private readonly int FROZEN_ROWS = 10;
 
         /// <summary>

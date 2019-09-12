@@ -201,8 +201,9 @@ namespace Midi_Analyzer
         {
             ListBox sPath = (ListBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("sourcePath");
             TextBox destPath = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("destinationPath");
-            string[] sourceFiles = new string[sPath.Items.Count];
-            sPath.Items.CopyTo(sourceFiles, 0);
+            string[] sourceFilesArray = new string[sPath.Items.Count];
+            sPath.Items.CopyTo(sourceFilesArray, 0);
+            List<string> sourceFiles = sourceFilesArray.ToList();
             string destinationFolder = destPath.Text;
             Converter converter = new Converter();
             
@@ -242,10 +243,19 @@ namespace Midi_Analyzer
             string image = imageBox.Text;
 
             //Make an array of source files.
-            string[] sourceFiles = new string[sPath.Items.Count + 1];
-            sPath.Items.CopyTo(sourceFiles, 0);
-            sourceFiles[sourceFiles.Length - 1] = modelMidi;
+            string[] sourceFilesArray = new string[sPath.Items.Count + 1]; //Add one for the model.
+            sourceFilesArray[sourceFilesArray.Length - 1] = modelMidi;
+            sPath.Items.CopyTo(sourceFilesArray, 0);
+            List<string> sourceFiles = sourceFilesArray.ToList();
+            if (!CheckSourceFiles(sourceFiles, sPath))
+            {
+                return; //An error was detected when checking source files.
+            }
             string destinationFolder = destPath.Text;
+            if (!CheckDestinationFolder(destinationFolder))
+            {
+                return; //An error was detected when checking the destination folder.
+            }
 
             //Get the converter and run it on the source files.
             Converter converter = new Converter();
@@ -329,6 +339,100 @@ namespace Midi_Analyzer
             string file = destPath.Text + "//analyzedFile.xlsx";
 
             Process.Start(@"" + file);
+        }
+
+        /// <summary>
+        /// Checks for common exceptions related to source file and model midi file input.
+        /// </summary>
+        /// <param name="paths">A string array containing paths to files</param>
+        /// <returns>bool representing success or failure.</returns>
+        private bool CheckSourceFiles(List<string> paths, ListBox sPath)
+        {
+            string message = "";
+            //Check if list is actually empty.
+            if(paths.Count == 1)
+            {
+                if(paths[0].Trim() == "" || paths[0] == null)
+                {
+                    message = "No model or source files was provided for analysis.\n" +
+                        "Please provide a model midi file, and optionally source files.";
+                    MessageBoxResult result = MessageBox.Show(message, "No files given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            FileChecker fileChecker = new FileChecker();
+            //Check for duplicate model file path in the source files, and delete it from the source path list.
+            string modelPath = paths[paths.Count - 1];
+            int index = paths.IndexOf(modelPath);
+            if (index != (paths.Count - 1))
+            {
+                int delete2 = sPath.Items.Count;
+                paths = RemoveElementAtIndex(paths, index);
+                sPath.Items.Clear();
+                for(int i = 0; i < paths.Count-1; i++)  //The limit is reduced by 1 to avoid the last element, the 
+                {
+                    sPath.Items.Add(paths[i]);
+                }
+                int delete = paths.Count;
+                message = "Duplicate of model found in source files.\n" +
+                        "One duplicate will be removed before processing.";
+                MessageBoxResult result = MessageBox.Show(message, "Duplicate Found", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            List<string> nonExistentFiles = new List<string>();
+            foreach(string path in paths){
+                if (!fileChecker.FileExists(path))
+                {
+                    nonExistentFiles.Add(path);
+                }
+            }
+            if(nonExistentFiles.Count > 0)
+            {
+                message = "The following files could not be found:\n";
+                foreach(string path in nonExistentFiles)
+                {
+                    message = message + path + "\n";
+                }
+                MessageBoxResult result = MessageBox.Show(message, "Files not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            return true;
+        }
+
+        private bool CheckDestinationFolder(string path)
+        {
+            FileChecker fileChecker = new FileChecker();
+            string message;
+            if(path.Trim() == "" || path == null)
+            {
+                message = "No destination folder was provided.\n" +
+                    "Please provide a destination folder.";
+                MessageBoxResult result = MessageBox.Show(message, "No folder given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else
+            {
+                if (!fileChecker.FolderExists(path))
+                {
+                    message = "The destination folder could not be found.";
+                    MessageBoxResult result = MessageBox.Show(message, "Folder not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private List<string> RemoveElementAtIndex(List<string> list, int index)
+        {
+            list.RemoveAt(index);
+            List<string> newList = new List<string>();
+            foreach(string item in list)
+            {
+                if(item != null && item.Trim() != "")
+                {
+                    newList.Add(item);
+                }
+            }
+            return newList;
         }
     }
 }
