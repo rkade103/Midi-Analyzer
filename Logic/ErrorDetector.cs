@@ -8,6 +8,31 @@ namespace Midi_Analyzer.Logic
     class ErrorDetector
     {
         private readonly int FROZEN_ROWS = 10;
+        private string[] headers = { "Line number", "Note", "Note Number", "Duration", "Include? (Y/N)",
+            "Include TL", "Include Dyn.", "Include Art.", "Include N.D.", "Space for barline", "Graph Width",
+            "Vel. Graph Width", "X-axis limit", "Image Width" }; //The last one may be removed, depending on the sheet reader.
+
+        /// <summary>
+        /// Checks if the given excerpt sheet follows the conventions and assumptions of the analyzer.
+        /// </summary>
+        /// <param name="path">A path to the excerpt sheet.</param>
+        /// <returns>A list of the incorrect headers.</returns>
+        public List<string> CheckExcerptSheetStructure(string path)
+        {
+            ExcelPackage excerptWb = new ExcelPackage(new FileInfo(path));
+            ExcelWorksheet sheet = excerptWb.Workbook.Worksheets[1];
+            int i = 0;
+            List<string> badHeaders = new List<string>();
+            while(i < headers.Length)
+            {
+                if(!(sheet.Cells[1, i+1].Text.Trim() == headers[i]))
+                {
+                    badHeaders.Add(sheet.Cells[1, i+1].Text);
+                }
+                i++;
+            }
+            return badHeaders;
+        }
 
         /// <summary>
         /// A basic error detection algorithm. It checks if all the notes in the playthrough are correct. Should an error be detected,

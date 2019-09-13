@@ -36,6 +36,47 @@ namespace Midi_Analyzer.Logic
             return Directory.Exists(path);
         }
 
-        
+        public bool FolderIsReadOnly(string path)
+        {
+            if (FolderExists(path))
+            {
+                var di = new DirectoryInfo(path);
+                if (di.Attributes.HasFlag(FileAttributes.ReadOnly))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool IsFileLocked(string path)
+        {
+            FileInfo file = new FileInfo(path);
+            FileStream stream = null;
+
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None);
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+            finally
+            {
+                if(stream != null)
+                {
+                    stream.Close();
+                }
+            }
+            return false;
+        }
     }
 }

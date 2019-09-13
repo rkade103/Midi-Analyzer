@@ -241,6 +241,7 @@ namespace Midi_Analyzer
             string excerptCSV = excerptBox.Text;
             string modelMidi = modelBox.Text;
             string image = imageBox.Text;
+            string destinationFolder = destPath.Text;
 
             //Make an array of source files.
             string[] sourceFilesArray = new string[sPath.Items.Count + 1]; //Add one for the model.
@@ -251,10 +252,21 @@ namespace Midi_Analyzer
             {
                 return; //An error was detected when checking source files.
             }
-            string destinationFolder = destPath.Text;
             if (!CheckDestinationFolder(destinationFolder))
             {
                 return; //An error was detected when checking the destination folder.
+            }
+            if (!CheckExcerptFile(excerptCSV))
+            {
+                return; //An error was detected when checking the excerpt file.
+            }
+            if (!CheckPictureFile(image))
+            {
+                return; //An error was detected when checking the excerpt picture.
+            }
+            if (!CheckAnalyzedFile(destinationFolder))
+            {
+                return; //An error was detected when checking the output analyzed file.
             }
 
             //Get the converter and run it on the source files.
@@ -301,6 +313,12 @@ namespace Midi_Analyzer
         /// <param name="e"></param>
         private void GenerateGraphs(object sender, RoutedEventArgs e)
         {
+            TextBox destPath = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("destinationPath");
+            string destinationFolder = destPath.Text;
+            if(!CheckAnalyzedFile(destinationFolder, true))
+            {
+                return; //An error was detected when checking the destination folder.
+            }
             analyzer.AnalyzeCSVFilesStep2();
             this.results.IsEnabled = true;
             TabControl tabControl = (TabControl)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("tabController");
@@ -337,7 +355,10 @@ namespace Midi_Analyzer
         {
             TextBox destPath = this.destinationPath;
             string file = destPath.Text + "//analyzedFile.xlsx";
-
+            if (!CheckAnalyzedFile(destPath.Text, true))
+            {
+                return; //An error was detected when checking the analyzed file.
+            }
             Process.Start(@"" + file);
         }
 
@@ -417,6 +438,111 @@ namespace Midi_Analyzer
                     MessageBoxResult result = MessageBox.Show(message, "Folder not found", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
+                else if (fileChecker.FolderIsReadOnly(path))
+                {
+                    message = "The destination folder has Read-Only access, meaning it cannot be edited.\n" +
+                        "Please select a different destination folder.";
+                    MessageBoxResult result = MessageBox.Show(message, "Folder is Read-Only", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool CheckExcerptFile(string path)
+        {
+            FileChecker fileChecker = new FileChecker();
+            string message;
+            if (path.Trim() == "" || path == null)
+            {
+                message = "Please provide an excerpt file.\n" +
+                    "If you do not have one, please generate one using the Sheet Reader application.";
+                MessageBoxResult result = MessageBox.Show(message, "No excerpt file given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else
+            {
+                if (!fileChecker.FileExists(path))
+                {
+                    message = "The excerpt file could not be found.";
+                    MessageBoxResult result = MessageBox.Show(message, "File not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                //Checking if the excerpt file is open. This is meant to prevent changes from the user midst analyzer running to break the software.
+                //However, the analyzer runs fast enough that the user cannot make changes before it completes its processing. Furthermore,
+                //it may be a hinderance to usability to force the user to constantly close the excerpt file before running (making quick changes become
+                //a hassle).
+                if (fileChecker.IsFileLocked(path))
+                {
+                    message = "The excerpt file is currently open.\n Please close it before continuing.";
+                    MessageBoxResult result = MessageBox.Show(message, "Excerpt File is Open", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                ErrorDetector errorDetector = new ErrorDetector();
+                List<string> badHeaders = errorDetector.CheckExcerptSheetStructure(path);
+                if(badHeaders.Count > 0)
+                {
+                    message = "The given excerpt file header structure is invalid. The following headers:";
+                    for(int i = 0; i < badHeaders.Count; i++)
+                    {
+                        message += "\n"+" -" + badHeaders[i];
+                    }
+                    message += "\ndo not follow structure. Please use the sheet reader to generate an excerpt sheet with proper headers.";
+                    MessageBoxResult result = MessageBox.Show(message, "Excerpt File invalid.", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool CheckPictureFile(string path)
+        {
+            FileChecker fileChecker = new FileChecker();
+            string message;
+            if (path.Trim() == "" || path == null)
+            {
+                message = "Please provide an excerpt picture file.\n" +
+                    "If you do not have one, please generate one using the Sheet Reader application.";
+                MessageBoxResult result = MessageBox.Show(message, "No picture file given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else
+            {
+                if (!fileChecker.FileExists(path))
+                {
+                    message = "The excerpt picture file could not be found.";
+                    MessageBoxResult result = MessageBox.Show(message, "File not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool CheckAnalyzedFile(string path, bool checkExistence=false)
+        {
+            string analyzedFilePath = path + "//analyzedFile.xlsx";
+            FileChecker fileChecker = new FileChecker();
+            string message;
+            if (checkExistence && !fileChecker.FileExists(analyzedFilePath))
+            {
+                message = "The analyzed file could not be found. Did you accidentally delete it?\n" +
+                    "If so, press the \"Converter\" tab, and rerun the analysis.";
+                MessageBoxResult result = MessageBox.Show(message, "File not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else if (!fileChecker.FileExists(analyzedFilePath))
+            {
+                return true; //In this particular case, the file doesn't exist, but it's not meant to.
+            }
+            //Checking if the excerpt file is open. This is meant to prevent changes from the user midst analyzer running to break the software.
+            //However, the analyzer runs fast enough that the user cannot make changes before it completes its processing. Furthermore,
+            //it may be a hinderance to usability to force the user to constantly close the excerpt file before running (making quick changes become
+            //a hassle).
+            if (fileChecker.IsFileLocked(analyzedFilePath))
+            {
+                message = "The analyzed file is currently open.\n Please close it before continuing.";
+                MessageBoxResult result = MessageBox.Show(message, "Analyzed File is Open", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
             }
             return true;
         }
