@@ -374,7 +374,7 @@ namespace Midi_Analyzer.Logic
                             string durationString = ConvertMilliToString(durationMilli);
                             treatedSheet.Cells[result.Row, 15].Value = noteDuration;
                             treatedSheet.Cells[result.Row, 16].Value = durationMilli;
-                            keys[last_note_played].Checked = true; //MUDAMUDAMUDAMUDAMUDAMUDA
+                            keys[last_note_played].Checked = true;
                             queue.RemoveAt(qIndex);
                         }
                     }

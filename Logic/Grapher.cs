@@ -12,7 +12,7 @@ namespace Midi_Analyzer.Logic
     class Grapher
     {
         private readonly int FROZEN_ROWS = 10;
-        private readonly int IMAGE_HEIGHT_DIVISOR = 74; //Used for pixel height of 158.
+        private readonly double IMAGE_HEIGHT_DIVISOR = 76.5; //Used for pixel height of 158. oRIGINAL NUMBER WAS 74
         private IDictionary<int, string> columnAssignment;
         private string imagePath;
         private ExcelPackage analysisPackage;
@@ -985,7 +985,7 @@ namespace Midi_Analyzer.Logic
 
             Console.WriteLine("WIDTH OF IMAGE: " + scaledWidth + "\nHEIGHT OF IMAGE: " + height);
 
-            scorePicture.SetSize(scaledWidth, IMAGE_HEIGHT_DIVISOR);
+            scorePicture.SetSize(scaledWidth, (int)IMAGE_HEIGHT_DIVISOR);
 
             //scorePicture.SetSize(933, 71);
         }

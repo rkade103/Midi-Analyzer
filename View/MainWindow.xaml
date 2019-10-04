@@ -60,7 +60,7 @@
                         <ListBox x:Name="xlsFileList" Height="198" Canvas.Left="147" Canvas.Top="116" Width="603">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="{x:Type ListBoxItem}">
-                                    <EventSetter Event="MouseDoubleClick" Handler="OpenFile"/>
+                                    <EventSetter Event="MouseDoubleClick" Handler="OpenAnalyzedFile"/>
                                 </Style>
                             </ListBox.ItemContainerStyle>
                         </ListBox>

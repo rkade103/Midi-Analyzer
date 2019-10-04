@@ -205,6 +205,14 @@ namespace Midi_Analyzer
             sPath.Items.CopyTo(sourceFilesArray, 0);
             List<string> sourceFiles = sourceFilesArray.ToList();
             string destinationFolder = destPath.Text;
+            if (!CheckSourceFiles(sourceFiles, sPath, true))
+            {
+                return; //An error was detected when checking the source files.
+            }
+            if (!CheckDestinationFolder(destinationFolder))
+            {
+                return; //An error was detected when checking the source files.
+            }
             Converter converter = new Converter();
             
             if(sourceFileType == "CSV")         //If the source file is a csv, convert it into midi.
@@ -244,31 +252,14 @@ namespace Midi_Analyzer
             string destinationFolder = destPath.Text;
 
             //Make an array of source files.
-            string[] sourceFilesArray = new string[sPath.Items.Count + 1]; //Add one for the model.
-            sourceFilesArray[sourceFilesArray.Length - 1] = modelMidi;
+            string[] sourceFilesArray = new string[sPath.Items.Count];
             sPath.Items.CopyTo(sourceFilesArray, 0);
             List<string> sourceFiles = sourceFilesArray.ToList();
-            if (!CheckSourceFiles(sourceFiles, sPath))
+            if(!CheckAllFiles(sourceFiles, sPath, destinationFolder, excerptCSV, image, modelMidi))
             {
-                return; //An error was detected when checking source files.
+                return; //An error was detected when checking one of the files.
             }
-            if (!CheckDestinationFolder(destinationFolder))
-            {
-                return; //An error was detected when checking the destination folder.
-            }
-            if (!CheckExcerptFile(excerptCSV))
-            {
-                return; //An error was detected when checking the excerpt file.
-            }
-            if (!CheckPictureFile(image))
-            {
-                return; //An error was detected when checking the excerpt picture.
-            }
-            if (!CheckAnalyzedFile(destinationFolder))
-            {
-                return; //An error was detected when checking the output analyzed file.
-            }
-
+            sourceFiles.Add(modelMidi);
             //Get the converter and run it on the source files.
             Converter converter = new Converter();
             converter.RunCSVBatchFile(sourceFiles, destinationFolder, false);
@@ -363,14 +354,76 @@ namespace Midi_Analyzer
         }
 
         /// <summary>
+        /// Runs all of the file checkers.
+        /// </summary>
+        /// <param name="sourcePaths">The source file paths</param>
+        /// <param name="sPath">The Listbox containing the midi files. This is used to remove duplicates of the model, if they exist.</param>
+        /// <param name="destinationPath">The path to the destination folder.</param>
+        /// <param name="excerptPath">The path to the excerpt file.</param>
+        /// <param name="picPath">The path to the picture file.</param>
+        /// <returns></returns>
+        private bool CheckAllFiles(List<string> sourcePaths, ListBox sPath, string destinationPath, 
+                                    string excerptPath, string picPath, string modelPath)
+        {
+            if (!CheckModelMidiFile(modelPath))
+            {
+                return false; //An error was detected when checking the model file.
+            }
+            if (!CheckSourceFiles(sourcePaths, sPath))
+            {
+                return false; //An error was detected when checking source files.
+            }
+            if (!CheckDestinationFolder(destinationPath))
+            {
+                return false; //An error was detected when checking the destination folder.
+            }
+            if (!CheckExcerptFile(excerptPath))
+            {
+                return false; //An error was detected when checking the excerpt file.
+            }
+            if (!CheckPictureFile(picPath))
+            {
+                return false; //An error was detected when checking the excerpt picture.
+            }
+            if (!CheckAnalyzedFile(destinationPath))
+            {
+                return false; //An error was detected when checking the output analyzed file.
+            }
+            CheckForModelDuplicate(sourcePaths, sPath, modelPath);
+            return true; //No errors detected.
+        }
+
+        /// <summary>
         /// Checks for common exceptions related to source file and model midi file input.
         /// </summary>
         /// <param name="paths">A string array containing paths to files</param>
         /// <returns>bool representing success or failure.</returns>
-        private bool CheckSourceFiles(List<string> paths, ListBox sPath)
+        private bool CheckSourceFiles(List<string> paths, ListBox sPath, bool conversion=false)
         {
             string message = "";
             //Check if list is actually empty.
+            if(paths.Count == 0 && conversion)
+            {
+                message = "No source files were provided.\n" +
+                        "Please select some source files to use.";
+                MessageBoxResult result = MessageBox.Show(message, "No source files given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else if(paths.Count == 0)
+            {
+                message = "No source files were provided!\n" +
+                        "Would you like to continue and only analyze the model file?";
+                MessageBoxResult result = MessageBox.Show(message, "No source files given", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+                if (result == MessageBoxResult.Cancel)
+                {
+                    return false; //The user has cancelled running the software.
+                }
+                else if (result == MessageBoxResult.OK)
+                {
+                    return true; //The user has accepted.
+                }
+                return false; //Return false just in case anything else happens.
+            }
             if(paths.Count == 1)
             {
                 if(paths[0].Trim() == "" || paths[0] == null)
@@ -381,42 +434,58 @@ namespace Midi_Analyzer
                     return false;
                 }
             }
-            FileChecker fileChecker = new FileChecker();
-            //Check for duplicate model file path in the source files, and delete it from the source path list.
-            string modelPath = paths[paths.Count - 1];
-            int index = paths.IndexOf(modelPath);
-            if (index != (paths.Count - 1))
+            if(paths.Count >= 1)
             {
-                int delete2 = sPath.Items.Count;
-                paths = RemoveElementAtIndex(paths, index);
+                FileChecker fileChecker = new FileChecker();
+                List<string> nonExistentFiles = new List<string>();
+                foreach (string path in paths)
+                {
+                    if (!fileChecker.FileExists(path))
+                    {
+                        nonExistentFiles.Add(path);
+                    }
+                }
+                if (nonExistentFiles.Count > 0)
+                {
+                    message = "The following files could not be found:\n";
+                    foreach (string path in nonExistentFiles)
+                    {
+                        message = message + path + "\n";
+                    }
+                    MessageBoxResult result = MessageBox.Show(message, "Files not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void CheckForModelDuplicate(List<string> paths, ListBox sPath, string modelPath)
+        {
+            FileChecker fileChecker = new FileChecker();
+            //Check if any files are invalid (dont exist).
+            int index = 0;
+            int duplicateIndex = -1;
+            while (index < paths.Count)
+            {
+                if(paths[index] == modelPath)
+                {
+                    duplicateIndex = index;
+                    break;
+                }
+                index++;
+            }
+            if(duplicateIndex != -1)    //A duplicate wad detected previously.
+            {
+                paths = RemoveElementAtIndex(paths, duplicateIndex);
                 sPath.Items.Clear();
-                for(int i = 0; i < paths.Count-1; i++)  //The limit is reduced by 1 to avoid the last element, the 
+                for (int i = 0; i < paths.Count; i++)  //The limit is reduced by 1 to avoid the last element, the 
                 {
                     sPath.Items.Add(paths[i]);
                 }
-                int delete = paths.Count;
-                message = "Duplicate of model found in source files.\n" +
-                        "One duplicate will be removed before processing.";
+                string message = "Duplicate of model found in source files.\n" +
+                    "One duplicate will be removed before processing.";
                 MessageBoxResult result = MessageBox.Show(message, "Duplicate Found", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            List<string> nonExistentFiles = new List<string>();
-            foreach(string path in paths){
-                if (!fileChecker.FileExists(path))
-                {
-                    nonExistentFiles.Add(path);
-                }
-            }
-            if(nonExistentFiles.Count > 0)
-            {
-                message = "The following files could not be found:\n";
-                foreach(string path in nonExistentFiles)
-                {
-                    message = message + path + "\n";
-                }
-                MessageBoxResult result = MessageBox.Show(message, "Files not found", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return false;
-            }
-            return true;
         }
 
         private bool CheckDestinationFolder(string path)
@@ -543,6 +612,28 @@ namespace Midi_Analyzer
                 message = "The analyzed file is currently open.\n Please close it before continuing.";
                 MessageBoxResult result = MessageBox.Show(message, "Analyzed File is Open", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
+            }
+            return true;
+        }
+        private bool CheckModelMidiFile(string path)
+        {
+            FileChecker fileChecker = new FileChecker();
+            string message;
+            if (path.Trim() == "" || path == null)
+            {
+                message = "Please provide a model midi file.\n" +
+                    "This is a file containing what is deemed the best playthrough with no errors.";
+                MessageBoxResult result = MessageBox.Show(message, "No model file given", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+            else
+            {
+                if (!fileChecker.FileExists(path))
+                {
+                    message = "The model midi file could not be found.";
+                    MessageBoxResult result = MessageBox.Show(message, "File not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
             }
             return true;
         }
