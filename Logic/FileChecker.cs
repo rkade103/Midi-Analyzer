@@ -56,6 +56,11 @@ namespace Midi_Analyzer.Logic
             }
         }
 
+        /// <summary>
+        /// Checks if the file at the given path is locked.
+        /// </summary>
+        /// <param name="path">The path to the file.</param>
+        /// <returns>True if the file is locked, false if it is not.</returns>
         public bool IsFileLocked(string path)
         {
             FileInfo file = new FileInfo(path);

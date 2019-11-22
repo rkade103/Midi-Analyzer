@@ -18,6 +18,8 @@ namespace Midi_Analyzer
         private string sourceFileType;
         private Analyzer analyzer;
 
+        private readonly string NO_ERROR_STRING = ""; //This string represents if no errors were detected.
+
         public MainWindow()
         {
             InitializeComponent();
@@ -40,10 +42,13 @@ namespace Midi_Analyzer
             if(midiButton.IsChecked == true)
             {
                 sourceFileType = "MIDI";
+                
             }
             else
             {
                 sourceFileType = "CSV";
+                CheckBox bpmCheck = (CheckBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("BPMCheck");
+                bpmCheck.IsChecked = false;
             }
         }
 
@@ -246,16 +251,23 @@ namespace Midi_Analyzer
             TextBox excerptBox = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("excerptBox");
             TextBox modelBox = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("modelBox");
             TextBox imageBox = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("imageBox");
+            CheckBox bpmCheck = (CheckBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("BPMCheck");
             string excerptCSV = excerptBox.Text;
             string modelMidi = modelBox.Text;
             string image = imageBox.Text;
             string destinationFolder = destPath.Text;
+            string targetBPM = null;
+            if ((bool)bpmCheck.IsChecked)
+            {
+                TextBox bpmBox = (TextBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("BPMBox");
+                targetBPM = bpmBox.Text;
+            }
 
             //Make an array of source files.
             string[] sourceFilesArray = new string[sPath.Items.Count];
             sPath.Items.CopyTo(sourceFilesArray, 0);
             List<string> sourceFiles = sourceFilesArray.ToList();
-            if(!CheckAllFiles(sourceFiles, sPath, destinationFolder, excerptCSV, image, modelMidi))
+            if(!CheckAllFiles(sourceFiles, sPath, destinationFolder, excerptCSV, image, modelMidi, targetBPM))
             {
                 return; //An error was detected when checking one of the files.
             }
@@ -265,7 +277,7 @@ namespace Midi_Analyzer
             converter.RunCSVBatchFile(sourceFiles, destinationFolder, false);
 
             //Run the first part of the analyzer and get the bad files.
-            analyzer = new Analyzer(sourceFiles, destinationFolder, excerptCSV, modelMidi, image);
+            analyzer = new Analyzer(sourceFiles, destinationFolder, excerptCSV, modelMidi, image, targetBPM);
             List<string> badSheets = analyzer.AnalyzeCSVFilesStep1();
 
             //Populate next tab with the names of the bad sheets.
@@ -363,7 +375,7 @@ namespace Midi_Analyzer
         /// <param name="picPath">The path to the picture file.</param>
         /// <returns></returns>
         private bool CheckAllFiles(List<string> sourcePaths, ListBox sPath, string destinationPath, 
-                                    string excerptPath, string picPath, string modelPath)
+                                    string excerptPath, string picPath, string modelPath, string targetBPM)
         {
             if (!CheckModelMidiFile(modelPath))
             {
@@ -388,6 +400,13 @@ namespace Midi_Analyzer
             if (!CheckAnalyzedFile(destinationPath))
             {
                 return false; //An error was detected when checking the output analyzed file.
+            }
+            if(targetBPM != null)
+            {
+                if (!CheckTargetBPM(targetBPM))
+                {
+                    return false; //An error was detected when checking the target BPM given.
+                }
             }
             CheckForModelDuplicate(sourcePaths, sPath, modelPath);
             return true; //No errors detected.
@@ -547,8 +566,14 @@ namespace Midi_Analyzer
                     MessageBoxResult result = MessageBox.Show(message, "Excerpt File is Open", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
-                ErrorDetector errorDetector = new ErrorDetector();
-                List<string> badHeaders = errorDetector.CheckExcerptSheetStructure(path);
+                ErrorDetector errorDetector = new ErrorDetector(path);
+                message = errorDetector.CheckExcerptSheetForErrors();
+                if (message != NO_ERROR_STRING)
+                {
+                    MessageBoxResult result = MessageBox.Show(message, "Error in Excerpt Sheet.", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                List<string> badHeaders = errorDetector.CheckExcerptSheetStructure();
                 if(badHeaders.Count > 0)
                 {
                     message = "The given excerpt file header structure is invalid. The following headers:";
@@ -637,6 +662,36 @@ namespace Midi_Analyzer
             }
             return true;
         }
+        private bool CheckTargetBPM(string targetBPM)
+        {
+            string[] digitArray = targetBPM.Split('.');
+            string message;
+            if(digitArray.Length > 2 || digitArray.Length == 0)
+            {
+                message = "The target BPM given is not a valid number.\nPlease supply a valid number for the target BPM.";
+                MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false; //There are multiple delimiters, making the number invalid.
+            }
+            else
+            {
+                foreach(string side in digitArray)
+                {
+                    if(side == "")
+                    {
+                        message = "The target BPM given is not a valid number.\nPlease supply a valid number for the target BPM.";
+                        MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return false;
+                    }
+                    if (!IsDigitOnly(side))
+                    {
+                        message = "The target BPM given is not a valid number.\nPlease supply a valid number for the target BPM.";
+                        MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return false;   //The sequence does not only contain numbers.
+                    }
+                }
+            }
+            return true;
+        }
 
         private List<string> RemoveElementAtIndex(List<string> list, int index)
         {
@@ -650,6 +705,16 @@ namespace Midi_Analyzer
                 }
             }
             return newList;
+        }
+
+        private bool IsDigitOnly(string s)
+        {
+            foreach (char c in s)
+            {
+                if (c < '0' || c > '9')
+                    return false;
+            }
+            return true;
         }
     }
 }

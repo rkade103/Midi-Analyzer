@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Midi_Analyzer"
         mc:Ignorable="d"
-        Title="Midi Analyzer" Height="550" Width="899.334">
+        Title="Midi Analyzer" Height="590" Width="899.334">
     <Grid>
         <Grid>
             <TabControl Name="tabController">
@@ -47,12 +47,18 @@
                         <Button Content="Browse" HorizontalAlignment="Left" VerticalAlignment="Top"
                             Width="75" Click="BrowseForFolder" Canvas.Left="725" Canvas.Top="228"/>
                         <Button Content="Convert" HorizontalAlignment="Center" VerticalAlignment="Top"
-                            Width="75" Click="ConvertFile" Canvas.Left="326" Canvas.Top="434"/>
+                            Width="75" Click="ConvertFile" Canvas.Left="326" Canvas.Top="480"/>
                         <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="Source File Type:" VerticalAlignment="Top" Canvas.Left="99" Canvas.Top="69"/>
                         <RadioButton Name="midiButton" Content="MIDI" GroupName="Group1" HorizontalAlignment="Left" VerticalAlignment="Top" IsChecked="True" Checked="buttonCheckChange" Canvas.Left="243" Canvas.Top="73"/>
                         <RadioButton Name="csvButton" Content="CSV" GroupName="Group1" HorizontalAlignment="Left" VerticalAlignment="Top" Checked="buttonCheckChange" Canvas.Left="361" Canvas.Top="73"/>
                         <Button Content="Analyze" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" RenderTransformOrigin="0.582,0.4"
-                                Click="AnalyzeFile" IsEnabled="{Binding IsChecked, ElementName=midiButton}" Canvas.Left="531" Canvas.Top="434"/>
+                                Click="AnalyzeFile" IsEnabled="{Binding IsChecked, ElementName=midiButton}" Canvas.Left="531" Canvas.Top="480"/>
+                        <TextBlock Height="16" TextWrapping="Wrap" Width="65" Canvas.Left="98" Canvas.Top="431" Text="Target BPM:"/>
+                        <TextBox Text="{Binding Path=FlexString1,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" Name="BPMBox"
+                                 Height="23" TextWrapping="Wrap" Width="113" Canvas.Left="326" Canvas.Top="428" 
+                                 IsEnabled="{Binding IsChecked, ElementName=BPMCheck}"/>
+                        <CheckBox Name="BPMCheck" Canvas.Left="231" Canvas.Top="432" RenderTransformOrigin="1.062,1.674" 
+                                  IsEnabled="{Binding IsChecked, ElementName=midiButton}" />
                     </Canvas>
                 </TabItem>
                 <TabItem x:Name="errorDetection" Header="Error Detection">
