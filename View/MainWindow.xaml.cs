@@ -218,21 +218,31 @@ namespace Midi_Analyzer
             {
                 return; //An error was detected when checking the source files.
             }
-            Converter converter = new Converter();
-            
-            if(sourceFileType == "CSV")         //If the source file is a csv, convert it into midi.
+            try
             {
-                Console.WriteLine("Running conversion to MIDI...");
-                converter.RunMIDIBatchFile(sourceFiles, destinationFolder);
+                Converter converter = new Converter();
+
+                if (sourceFileType == "CSV")         //If the source file is a csv, convert it into midi.
+                {
+                    Console.WriteLine("Running conversion to MIDI...");
+                    converter.RunMIDIBatchFile(sourceFiles, destinationFolder);
+                }
+                else if (sourceFileType == "MIDI")   //If the source file is a mid, convert it into csv.
+                {
+                    Console.WriteLine("Running conversion to CSV...");
+                    converter.RunCSVBatchFile(sourceFiles, destinationFolder);
+                }
+                else
+                {
+                    Console.WriteLine("There was an error with the source file type selection.");
+                }
             }
-            else if(sourceFileType == "MIDI")   //If the source file is a mid, convert it into csv.
+            catch (Exception exception)
             {
-                Console.WriteLine("Running conversion to CSV...");
-                converter.RunCSVBatchFile(sourceFiles, destinationFolder);
-            }
-            else
-            {
-                Console.WriteLine("There was an error with the source file type selection.");
+                string message = "An unexpected error occured. Please try with different input files, or contact the uottawa piano lab for" +
+                    "assistance. Further information can be found in the user manual to the Midi Analyzer.";
+                MessageBoxResult result = MessageBox.Show(message, "Unexpected Error.", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
         }
 
@@ -272,27 +282,37 @@ namespace Midi_Analyzer
                 return; //An error was detected when checking one of the files.
             }
             sourceFiles.Add(modelMidi);
-            //Get the converter and run it on the source files.
-            Converter converter = new Converter();
-            converter.RunCSVBatchFile(sourceFiles, destinationFolder, false);
-
-            //Run the first part of the analyzer and get the bad files.
-            analyzer = new Analyzer(sourceFiles, destinationFolder, excerptCSV, modelMidi, image, targetBPM);
-            List<string> badSheets = analyzer.AnalyzeCSVFilesStep1();
-
-            //Populate next tab with the names of the bad sheets.
-            ListBox xlsList = (ListBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("xlsFileList");
-            xlsList.Items.Clear();
-            foreach(string name in badSheets)
+            try
             {
-                xlsList.Items.Add(name);
-            }
+                //Get the converter and run it on the source files.
+                Converter converter = new Converter();
+                converter.RunCSVBatchFile(sourceFiles, destinationFolder, false);
 
-            //Switch the focus to the next tab.
-            TabControl tabControl = (TabControl)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("tabController");
-            this.errorDetection.IsEnabled = true;
-            this.results.IsEnabled = false;     //You do this in case the person has rerun the tool without closing it.
-            tabControl.Items.OfType<TabItem>().SingleOrDefault(n => n.Name == "errorDetection").Focus();
+                //Run the first part of the analyzer and get the bad files.
+                analyzer = new Analyzer(sourceFiles, destinationFolder, excerptCSV, modelMidi, image, targetBPM);
+                List<string> badSheets = analyzer.AnalyzeCSVFilesStep1();
+
+                //Populate next tab with the names of the bad sheets.
+                ListBox xlsList = (ListBox)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("xlsFileList");
+                xlsList.Items.Clear();
+                foreach (string name in badSheets)
+                {
+                    xlsList.Items.Add(name);
+                }
+
+                //Switch the focus to the next tab.
+                TabControl tabControl = (TabControl)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("tabController");
+                this.errorDetection.IsEnabled = true;
+                this.results.IsEnabled = false;     //You do this in case the person has rerun the tool without closing it.
+                tabControl.Items.OfType<TabItem>().SingleOrDefault(n => n.Name == "errorDetection").Focus();
+            }
+            catch (Exception exception)
+            {
+                string message = "An unexpected error occured. Please try with different input files, or contact the uottawa piano lab for" +
+                    "assistance. Further information can be found in the user manual to the Midi Analyzer.";
+                MessageBoxResult result = MessageBox.Show(message, "Unexpected Error.", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         }
 
         /// <summary>
@@ -320,12 +340,23 @@ namespace Midi_Analyzer
             string destinationFolder = destPath.Text;
             if(!CheckAnalyzedFile(destinationFolder, true))
             {
-                return; //An error was detected when checking the destination folder.
+                return; //An error was detected when checking the analyzed file.
             }
-            analyzer.AnalyzeCSVFilesStep2();
-            this.results.IsEnabled = true;
-            TabControl tabControl = (TabControl)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("tabController");
-            tabControl.Items.OfType<TabItem>().SingleOrDefault(n => n.Name == "results").Focus();
+            try
+            {
+                analyzer.AnalyzeCSVFilesStep2();
+                this.results.IsEnabled = true;
+                TabControl tabControl = (TabControl)(((FrameworkElement)sender).Parent as FrameworkElement).FindName("tabController");
+                tabControl.Items.OfType<TabItem>().SingleOrDefault(n => n.Name == "results").Focus();
+
+            }
+            catch (Exception exception)
+            {
+                string message = "An unexpected error occured. Please try with different input files, or contact the uottawa piano lab for " +
+                    "assistance. Further information can be found in the user manual to the Midi Analyzer.";
+                MessageBoxResult result = MessageBox.Show(message, "Unexpected Error.", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
         }
 
         /// <summary>
@@ -683,6 +714,22 @@ namespace Midi_Analyzer
                         return false;
                     }
                     if (!IsDigitOnly(side))
+                    {
+                        message = "The target BPM given is not a valid number.\nPlease supply a valid number for the target BPM.";
+                        MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return false;   //The sequence does not only contain numbers.
+                    }
+                    double number;
+                    if(Double.TryParse(targetBPM, out number))
+                    {
+                        if(number <= 0)
+                        {
+                            message = "The target BPM given is not a valid number.\nPlease supply a positive number for the target BPM.";
+                            MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return false;   //The sequence does not only contain numbers.
+                        }
+                    }
+                    else
                     {
                         message = "The target BPM given is not a valid number.\nPlease supply a valid number for the target BPM.";
                         MessageBoxResult result = MessageBox.Show(message, "Target BPM Not Valid", MessageBoxButton.OK, MessageBoxImage.Warning);

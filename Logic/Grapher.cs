@@ -89,7 +89,7 @@ namespace Midi_Analyzer.Logic
             {
                 //Get corresponding sheet and write header. 
                 treatedSheet = analysisPackage.Workbook.Worksheets[i];
-                WriteHeader(graphSheet, treatedSheet.Name, columnIndex, "IOI (milliseconds)");
+                WriteHeader(graphSheet, treatedSheet.Name, columnIndex, "IOI Deviation (%)");
 
                 //Calculate mean and set variables and indexes for sheet traversal.
                 if(targetBPM == null)
@@ -193,7 +193,8 @@ namespace Midi_Analyzer.Logic
 
                 //Calculate mean and set variables and indexes for sheet traversal.
                 double meanVel = CalculateMeanVelocity(treatedSheet, excerptSheet);
-                graphSheet.Cells[1, columnIndex + 4].Value = meanVel;
+                graphSheet.Cells[1, columnIndex + 5].Value = "Raw Dynamic Value";
+                graphSheet.Cells[1, columnIndex + 6].Value = meanVel;
                 string header = "";
                 int treatedIndex = FROZEN_ROWS + 1;   //Skip header
                 int graphIndex = 2;     //Skip header
@@ -215,7 +216,7 @@ namespace Midi_Analyzer.Logic
                             graphSheet.Cells[graphIndex, columnIndex + 4].Value = excerptSheet.Cells[lineNumber + 1, EX_SPACE_BARLINE].Value;              //Write spacing from excerpt.
 
                             //4A. Thisgraph will show the real velocities.
-                            graphSheet.Cells[graphIndex, columnIndex + 5].Value = treatedSheet.Cells[treatedIndex, EX_SPACE_BARLINE].Value;
+                            graphSheet.Cells[graphIndex, columnIndex + 5].Value = treatedSheet.Cells[treatedIndex, A_VELOCITY].Value;
                             lastValidRow = graphIndex;
                             graphIndex++;
                         }
@@ -238,7 +239,7 @@ namespace Midi_Analyzer.Logic
                 graph2.Series[i - 1].Header = sheetNames[i - 1];
                 
                 markerIndex++;
-                columnIndex += 7;
+                columnIndex += 8;
             }
             //Finalize graph and save the package.
             string title = "Dynamics - " + excerptPackage.File.Name.Split('.')[0];

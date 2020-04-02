@@ -31,4 +31,3 @@ C:\Users\Rawaz\Documents\Piano_Lab\Midi Analyzer\Midi Analyzer\bin\Debug\Microso
 C:\Users\Rawaz\Documents\Piano_Lab\Midi Analyzer\Midi Analyzer\bin\Debug\Microsoft.WindowsAPICodePack.Shell.xml
 C:\Users\Rawaz\Documents\Piano_Lab\Midi Analyzer\Midi Analyzer\bin\Debug\Microsoft.WindowsAPICodePack.ShellExtensions.pdb
 C:\Users\Rawaz\Documents\Piano_Lab\Midi Analyzer\Midi Analyzer\bin\Debug\Microsoft.WindowsAPICodePack.ShellExtensions.xml
-C:\Users\Rawaz\Documents\Piano_Lab\Midi Analyzer\Midi Analyzer\obj\Debug\Midi Analyzer.csprojAssemblyReference.cache

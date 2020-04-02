@@ -145,7 +145,8 @@ namespace Midi_Analyzer.Logic
             int i = 2;
             int rowCount = sheet.Dimension.End.Row;
             string message = NO_ERROR_STRING;
-            while (i < rowCount || sheet.Cells[i, LINE_NUMBER_COL].Text.ToLower().Trim() != "end")
+            string currentIndexValue = sheet.Cells[i, LINE_NUMBER_COL].Text.Trim().ToLower();
+            while (i < rowCount && currentIndexValue != "end")
             {
                 if (!IsDigitsOnly(sheet.Cells[i, LINE_NUMBER_COL].Text.Trim()))
                 {
@@ -155,6 +156,7 @@ namespace Midi_Analyzer.Logic
                     return message;
                 }
                 i++;
+                currentIndexValue = sheet.Cells[i, LINE_NUMBER_COL].Text.Trim().ToLower();
             }
             return message;
         }
